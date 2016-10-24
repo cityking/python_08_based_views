@@ -1,0 +1,128 @@
+1.django.views.generic.base.View
+
+views.py
+class MyView(View):
+        def get(self, request, *args, **kwargs):
+                return HttpResponse("Hello World!!!")
+
+urls.py
+urlpatterns = [	
+	...
+    url(r'^myview/$', MyView.as_view(), name='my-view'),
+	...
+]
+
+添加数据
+
+在forms.py文件里定义form PoemModelForm
+class PoemModelForm(forms.ModelForm):
+        class Meta:
+                model = Poem
+                fields = ['title', 'author']
+
+views.py
+class AddModelView(View):
+        def get(self, request):
+                return render(request, 'add.html', {'form':PoemModelForm()})
+
+        def post(self, request):
+                form = PoemModelForm(request.POST)
+                form.save()
+                return render(request, 'success.html')
+
+urls.py
+urlpatterns = [
+	...
+    url(r'^add/$', AddModelView.as_view())
+	...
+]
+
+add.html
+<form action="" method="post">
+{% csrf_token %}
+        {{form.as_p}}
+        <input type="submit" value="add">
+</form>
+
+2.django.views.generic.base.TemplateView
+
+views.py
+class HomePageView(TemplateView):
+        template_name = 'home.html'
+        def get_context_data(self, **kwargs):
+                context = super(HomePageView, self).get_context_data(**kwargs)
+                context['poems'] = Poem.objects.all()[:5]
+                return context
+
+urls.py
+urlpatterns = [	
+	...
+	url(r'^home/$', HomePageView.as_view(), name='home'),
+ 	...
+]
+
+home.html
+{% for poem in poems %}
+        <p>{{poem.title}}--{{poem.author}}</p>
+{% endfor %}
+
+3.django.views.generic.base.RedirectView
+  django.views.generic.detail.DetailView
+
+class PoemCounterRedirectView(RedirectView):
+        pattern_name = 'details'
+        def get_redirect_url(self, *args, **kwargs):
+                poem = get_object_or_404(Poem, pk=kwargs['pk'])
+                poem.update_counter()
+                poem.save()
+                return super(PoemCounterRedirectView, self).get_redirect_url(*args, **kwargs)
+
+class PoemDetailView(DetailView):
+        model = Poem
+        template_name = 'detail.html'
+
+        def get_context_data(self, **kwargs):
+                context = super(PoemDetailView, self).get_context_data(**kwargs)
+                context['now'] = timezone.now()
+                return context
+
+urls.py
+urlpatterns = [
+	...
+    url(r'^goto-baidu/$', RedirectView.as_view(url='http://www.baidu.com'), name='gotobaidu'),
+    url(r'^counter/(?P<pk>\d+)/$', PoemCounterRedirectView.as_view(), name='counter' ),
+    url(r'^details/(?P<pk>\d+)/$', PoemDetailView.as_view(), name='details'),
+]
+
+detail.html
+<p>{{object.title}}--{{object.author}}</p>
+<p>{{now | date}}</p>
+
+4.django.views.generic.list.ListView
+
+views.py
+class PoemListView(ListView):
+        model = Poem
+        template_name = 'list.html'
+
+        def get_context_data(self, **kwargs):
+                context = super(PoemListView, self).get_context_data(**kwargs)
+                context['now'] = timezone.now()
+                return context
+
+urls.py
+urlpatterns = [
+    url(r'^list/$', PoemListView.as_view(), name='list'),
+]
+
+list.html
+{% for poem in object_list %}
+        <p>{{poem.title}}--{{poem.author}}</p>
+        {{now | date}}
+{% endfor %}
+
+参考资料：http://www.ziqiangxuetang.com/django/django-generic-views.html
+	https://docs.djangoproject.com/en/dev/ref/class-based-views/#built-in-class-based-views-api
+
+
+

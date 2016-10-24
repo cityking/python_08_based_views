@@ -1,0 +1,4 @@
+{% for poem in object_list %}
+	<p>{{poem.title}}--{{poem.author}}</p>
+	{{now | date}}
+{% endfor %}
